@@ -1,2 +1,2 @@
-# Build-time tool, breakpad's symbol dumper
+# Build-time tool, mozilla's breakpad symbol dumper
 set(DEP_KIND tool)
