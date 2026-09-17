@@ -121,7 +121,10 @@ elseif(WIN32)
         # link crashpad's prebuilt arm64 capture-context object
         list(APPEND _src ${_cp}/util/misc/capture_context_win_arm64.obj)
     else()
-        list(APPEND _src ${_cp}/util/misc/capture_context_win.asm)
+        list(APPEND _src
+            ${_cp}/util/misc/capture_context_win.asm
+            ${_cp}/util/win/safe_terminate_process.asm
+        )
         enable_language(ASM_MASM)
     endif()
     set(_def -DOS_WIN -DNOMINMAX -DUNICODE -DWIN32_LEAN_AND_MEAN -DWIN32)
@@ -210,6 +213,9 @@ endif()
 set_target_properties(gcrashpad PROPERTIES UNITY_BUILD OFF POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
     target_compile_options(gcrashpad PRIVATE $<$<NOT:$<COMPILE_LANGUAGE:ASM_MASM>>:/w>)
+    if(CRASHPAD_CLIENT_ARCH STREQUAL "x86")
+        target_compile_options(gcrashpad PRIVATE $<$<COMPILE_LANGUAGE:ASM_MASM>:/safeseh>)
+    endif()
     target_compile_options(gcrashpad INTERFACE /wd4100)
 else()
     target_compile_options(gcrashpad PRIVATE -w)
