@@ -4,7 +4,8 @@ set(DEP_SOURCE_URL    "https://github.com/google/breakpad/archive/5359c2336d7439
 set(DEP_SOURCE_SHA256 "1915bc0ae29e64b7a10a095d40697ef22ead23d0dd808e9ad493bdd1f38d5b7b")
 
 set(DEP_PATCHES_LINUX   patch/0001-memory-allocator-needs-cstddef.patch)
-set(DEP_PATCHES_WINDOWS patch/0002-vcxproj-release-links-dbghelp.patch)
+set(DEP_PATCHES_WINDOWS patch/0002-vcxproj-release-links-dbghelp.patch
+                        patch/0003-vcxproj-add-x64-configuration.patch)
 
 # TODO: no WoA support yet / not investigated
 set(DEP_PLATFORMS linux-x86_64 linux-aarch64 macos-aarch64 macos-x86_64 macos-universal windows-x86_64)

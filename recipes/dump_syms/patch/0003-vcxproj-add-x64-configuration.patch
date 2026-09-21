@@ -1,0 +1,121 @@
+Upstream dump_syms.vcxproj only ships Debug|Win32 and Release|Win32, so the tool
+can only be built as a 32-bit process. With a 2 GB address space DIA runs out of
+memory while enumerating symbols of multi-gigabyte PDBs and dump_syms dies partway
+through, leaving a truncated .sym (no FUNC/PUBLIC/STACK records).
+See https://github.com/electron/chromium-breakpad/issues/4
+
+Add Debug|x64 and Release|x64, mirroring the configuration getsentry/build-pad uses
+for the very same breakpad sources (MIT):
+https://github.com/getsentry/build-pad/blob/master/breakpad/windows/dump_syms/dump_syms.vcxproj
+Notably diaguids.lib comes from 'DIA SDK\lib\amd64' on x64. Dbghelp.lib is carried
+over from 0002-vcxproj-release-links-dbghelp.patch.
+
+--- a/src/tools/windows/dump_syms/dump_syms.vcxproj
++++ b/src/tools/windows/dump_syms/dump_syms.vcxproj
+@@ -9,6 +9,14 @@
+       <Configuration>Release</Configuration>
+       <Platform>Win32</Platform>
+     </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
+   </ItemGroup>
+   <PropertyGroup Label="Globals">
+     <VCProjectVersion>17.0</VCProjectVersion>
+@@ -25,6 +33,14 @@
+     <ConfigurationType>Application</ConfigurationType>
+     <PlatformToolset>v143</PlatformToolset>
+   </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v143</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v143</PlatformToolset>
++  </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+   <ImportGroup Label="ExtensionSettings">
+   </ImportGroup>
+@@ -39,6 +55,12 @@
+   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+   </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
+   <PropertyGroup Label="UserMacros" />
+   <PropertyGroup>
+     <_ProjectFileVersion>17.0.35913.81</_ProjectFileVersion>
+@@ -53,6 +75,16 @@
+     <IntDir>Release\</IntDir>
+     <LinkIncremental>true</LinkIncremental>
+   </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <OutDir>x64\Debug\</OutDir>
++    <IntDir>x64\Debug\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <OutDir>x64\Release\</OutDir>
++    <IntDir>x64\Release\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
+   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+     <ClCompile>
+       <Optimization>Disabled</Optimization>
+@@ -93,6 +125,46 @@
+       <TargetMachine>MachineX86</TargetMachine>
+     </Link>
+   </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>$(VSInstallDir)\DIA SDK\include;..\..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>
++      </MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++      <LanguageStandard>stdcpp20</LanguageStandard>
++    </ClCompile>
++    <Link>
++      <AdditionalDependencies>$(VSInstallDir)\DIA SDK\lib\amd64\diaguids.lib;imagehlp.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <TargetMachine>MachineX64</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <AdditionalIncludeDirectories>$(VSInstallDir)\DIA SDK\include;..\..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++      <MinimalRebuild />
++    </ClCompile>
++    <Link>
++      <AdditionalDependencies>$(VSInstallDir)\DIA SDK\lib\amd64\diaguids.lib;imagehlp.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++      <TargetMachine>MachineX64</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
+   <ItemGroup>
+     <ClInclude Include="..\..\..\common\windows\dia_util.h" />
+     <ClInclude Include="..\..\..\common\windows\guid_string.h" />

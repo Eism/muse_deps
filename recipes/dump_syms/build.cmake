@@ -26,13 +26,23 @@ elseif(BD_OS STREQUAL "macos")
     file(COPY "${BUILD}/Release/dump_syms" DESTINATION "${INSTALL}/bin")
 
 elseif(BD_OS STREQUAL "windows")
+    if(BD_ARCH STREQUAL "x86_64")
+        set(_msbuild_platform "x64")
+        set(_build_subdir "x64/Release")
+        set(_dia_subdir "amd64")
+    else()
+        message(FATAL_ERROR
+            "[dump_syms] dump_syms.vcxproj has no configuration for windows ${BD_ARCH}, "
+            "add one in recipes/dump_syms/patch and extend DEP_PLATFORMS")
+    endif()
+
     find_program(MSBUILD NAMES msbuild REQUIRED)
     _bd_run_dir("${SRC}/src/tools/windows/dump_syms"
-        "${MSBUILD}" dump_syms.vcxproj /m /p:Configuration=Release /p:Platform=Win32)
-    file(COPY "${SRC}/src/tools/windows/dump_syms/Release/dump_syms.exe"
+        "${MSBUILD}" dump_syms.vcxproj /m /p:Configuration=Release "/p:Platform=${_msbuild_platform}")
+    file(COPY "${SRC}/src/tools/windows/dump_syms/${_build_subdir}/dump_syms.exe"
          DESTINATION "${INSTALL}/bin")
     file(TO_CMAKE_PATH "$ENV{VSINSTALLDIR}" _vs)
-    file(COPY "${_vs}/DIA SDK/bin/msdia140.dll" DESTINATION "${INSTALL}/bin")
+    file(COPY "${_vs}/DIA SDK/bin/${_dia_subdir}/msdia140.dll" DESTINATION "${INSTALL}/bin")
 
 else()
     message(FATAL_ERROR "[dump_syms] unsupported OS: ${BD_OS}")
